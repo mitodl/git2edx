@@ -34,3 +34,8 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# git2edx
+config.json
+config.py
+git2edx.pid

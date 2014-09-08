@@ -9,18 +9,14 @@
 #
 # configuration parameters in config.py
 
-import sys, string, re, time, os
-import cgi
+import sys, time, os
 import json
-import urllib
-import requests
 import socket
 
-from cgi import parse_qs, escape
+from cgi import parse_qs
 from lxml import etree
 from edxStudio import edxStudio
 
-#-----------------------------------------------------------------------------
 # config
 
 config = {'username': "",
@@ -31,6 +27,7 @@ config = {'username': "",
           'LOGFILE': "",
           'REPO2COURSE_MAP': {},	# if empty, then course id will be determined from repo XML contents
           'PORT': 8121,
+          'STUDIO_URL': 'http://studio.edx.org',
           }
 
 CFN = 'config.json'
@@ -38,8 +35,6 @@ if os.path.exists(CFN):
     import json
     new_config = json.loads(open(CFN).read())
     config.update(new_config)
-
-#-----------------------------------------------------------------------------
 
 PIDFILE = "git2edx.pid"
 
@@ -64,8 +59,6 @@ def LOG(x):
     fp.flush()
     fp.close()
 
-#-----------------------------------------------------------------------------
-
 def upload_to_edx(rdir, repo, r2c=None):
     '''
     tar up repo, and upload to edX
@@ -80,14 +73,13 @@ def upload_to_edx(rdir, repo, r2c=None):
     An r2c entry may be provided in cases when one repo is chained to trigger loading of
     one or more courses.
     '''
-    
-    site_url = "https://studio.edx.org"
-    
+
+    site_url = config['STUDIO_URL']
+
     if r2c is None:
-        
         # get a r2c entry from scratch or just course_id from repo course.xml file
         r2c = {}
-    
+
         # get course_id (and optional site_url)
         if not config['REPO2COURSE_MAP']:
             cxml = etree.parse(open('%s/course.xml' % rdir)).getroot()
@@ -102,15 +94,14 @@ def upload_to_edx(rdir, repo, r2c=None):
                 site_url = r2c['site']
             else:
                 course_id = r2c
-
-    else:	# r2c already specified (it should be a dict)
+    else:  # r2c already specified (it should be a dict)
         course_id = r2c['cid']
         site_url = r2c['site']
-        
+
     if not course_id:
         LOG("Error: cannot determine course_id for repo=%s" % repo)
         return
-    
+
     # if branch specified check that out now
     if 'branch' in r2c:
         os.chdir(rdir)
@@ -131,13 +122,13 @@ def upload_to_edx(rdir, repo, r2c=None):
         LOG("  Moving %s -> %s; %s -> %s" % (oldxml, tmpxml, newxml, oldxml))
 
     # create tar.gz file
-    tfn = '%s.tar.gz' % rdir
+    tfn = '%s.tar.gz' % repo
     os.chdir(rdir)
     os.chdir('..')
     cmd = "tar czf %s --exclude=.git --exclude=src %s" % (tfn, repo)
     LOG(cmd)
     LOG(os.popen(cmd).read())
-    
+
     # undo change of course.xml if that was done
     if 'coursexml' in r2c:
         os.rename(tmpxml, oldxml)
@@ -154,12 +145,8 @@ def upload_to_edx(rdir, repo, r2c=None):
         LOG('--> chainto triggering auto-load of %s' % chainto)
         upload_to_edx(rdir, repo, config['REPO2COURSE_MAP'].get(chainto, None))
 
-#-----------------------------------------------------------------------------
-
 def do_git2edx(environ, start_response):
-
     if True:
-
         # the environment variable CONTENT_LENGTH may be empty or missing
         try:
             request_body_size = int(environ.get('CONTENT_LENGTH', 0))
@@ -172,20 +159,20 @@ def do_git2edx(environ, start_response):
         request_body = environ['wsgi.input'].read(request_body_size)
         post = parse_qs(request_body)
 
-	LOG('-----------------------------------------------------------------------------')
-	LOG('connect at %s' % time.ctime(time.time()))
+        LOG('-----------------------------------------------------------------------------')
+        LOG('connect at %s' % time.ctime(time.time()))
 
-	args = post
+        args = post
 
         LOG('environ = %s' % environ)
         LOG('post = %s' % post)
         LOG('payload = "%s"' % args.get('payload','none'))
 
-	# from github
-	if 'payload' in args:
-	    gitargs = json.loads(args['payload'][0])
-	    repo = gitargs['repository']['name']
-	    LOG('repo = %s\n' % repo)
+        # from github
+        if 'payload' in args:
+            gitargs = json.loads(args['payload'][0])
+            repo = gitargs['repository']['name']
+            LOG('repo = %s\n' % repo)
 
             REPOS = os.listdir(config['REPODIR'])
 
@@ -193,10 +180,11 @@ def do_git2edx(environ, start_response):
                 os.chdir(config['REPODIR'])
                 # should do a git clone here...
 
-	    # if it is one of our repos, then try doing a git2edx on it
-	    if config['ANYREPO'] or repo in REPOS:
-		rdir = '%s/%s' % (config['REPODIR'],repo)
-		os.chdir(rdir)
+            # if it is one of our repos, then try doing a git2edx on it
+            if config['ANYREPO'] or repo in REPOS:
+                basedir = os.getcwd()
+                rdir = '%s/%s' % (config['REPODIR'],repo)
+                os.chdir(rdir)
                 # figure out which branch the directory is on
                 branch = ''
                 for k in os.popen('git branch').readlines():
@@ -207,23 +195,24 @@ def do_git2edx(environ, start_response):
                 # get current branch
                 #cmd = "git reset --hard HEAD; git clean -f -d; git pull origin"
                 #LOG(cmd)
-		#LOG(os.popen(cmd).read())
+                #LOG(os.popen(cmd).read())
 
                 # get branch
                 cmd = "git reset --hard HEAD; git clean -f -d; git pull origin %s" % branch
                 LOG(cmd)
-		LOG(os.popen(cmd).read())
+                LOG(os.popen(cmd).read())
 
                 if config['FORCE_BRANCH']:
                     cmd = 'git checkout %s' % config['FORCE_BRANCH']
                     LOG(cmd)
                     LOG(os.popen(cmd).read())
                     
-		# tar it up and upload to edX studio site
+                # tar it up and upload to edX studio site
+                os.chdir(basedir)
                 upload_to_edx(rdir, repo)
 
-	    else:
-		LOG("unknown\n")
+            else:
+                LOG("unknown\n")
 
         start_response('200 OK', [('Content-Type', 'text/html')])
         return ['''Hello World - github''']
@@ -236,4 +225,3 @@ if __name__ == '__main__':
     host = socket.gethostname()
     srv = make_server(host, PORT, do_git2edx)
     srv.serve_forever()
-    
