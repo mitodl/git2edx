@@ -1,0 +1,62 @@
+---
+#
+# git2edx Example Configuration
+# ------------------------------------------------------------------------------
+# Modify this file and rename it to `config.yml` to use!
+#
+
+# CHANGE THIS to another random string! This is an optional GitHub webhook
+#   secret, which is used to both a password to ensure that payloads are
+#   coming from your repositories on GitHub, and to verify the integrity of the
+#   payload. Secrets can also be configured at the course configuration level
+#   (see the course configuration examples below).
+secret: "Sdw_ZSJYIr2Go55U"
+#   See GitHub's developer documentation for implementation details:
+#   https://developer.github.com/v3/repos/hooks/#create-a-hook
+
+# Studios are records of edX Studio locations and accounts that git2edx should
+#   use during the Studio import stage. Course repositories are mapped to
+#   studios using the "courses" configuration.
+studios:
+  # The key name is used as a reference when mapping courses to studio
+  #   configurations for course importing.
+  edx:
+    # The "url" should contain both the protocol (i.e., http or https) and, if
+    #   not port 80, the port (e.g., the edX Developer Stack's default Studio
+    #   port is 8001).
+    url: "https://studio.edx.org"
+    email: "user@mit.edu"
+    password: "pass"
+    # Studio configurations marked with the "default" flag will be used for
+    #   importing when an updated course repository has no corresponding course
+    #   configuration.
+    default: true
+  devstack:
+    url: "http://localhost:8001"
+    email: "staff@example.com"
+    password: "edx"
+
+# The file system location used for checking out and storing course Git
+#   repositories.
+course_directory: "courses"
+
+# Courses are optional records of course Git repositories and mappings to Studio
+#   configurations for deployment.
+courses:
+  # This key is used as the name of the file system directory within which the
+  #   course repository is stored, and should always match exactly with the
+  #   repository's name on GitHub.
+  edx-demo-course:
+    # These are the Studio configurations to use for importing when the
+    #   repository triggers git2edx.
+    upload:
+      - edx
+      - devstack
+    # If the default secret is configured, this secret cascades over it. For
+    #   more information about GitHub payload secrets, see the default secret
+    #   example above. If you wish to use this, CHANGE THIS to another randomly
+    #   generated string.
+    secret: "9VqxAn2_KHRpDMRK"
+  latex2edx:
+    upload:
+      - devstack
