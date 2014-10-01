@@ -1,0 +1,9 @@
+Flask
+PyYAML
+nose
+coverage
+diff-cover
+pylint
+pep8
+mock
+coveralls
