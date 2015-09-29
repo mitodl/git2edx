@@ -83,7 +83,6 @@ class edxStudio(object):
                }
     
         #r2 = self.ses.get(url)
-
         #if not r2.ok or (r2.status_code==404):
         #    url = '%s/import/slashes:%s' % (self.BASE, course_id.replace('/','+'))
         #    mode = 2
