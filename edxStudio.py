@@ -115,7 +115,7 @@ class edxStudio(object):
                 print r4.content
                 if r4.json()["ImportStatus"]==4:
                     print "Done!"
-                    sys.exit(0)
+                    return
             else:
                 print r4
             sys.stdout.flush()
