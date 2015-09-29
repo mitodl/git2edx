@@ -26,7 +26,7 @@ except:
 
 class edxStudio(object):
 
-    def __init__(self, base="https://studio.edx.org", username='', password=''):
+    def __init__(self, base="https://studio.edge.edx.org", username='', password=''):
         self.ses = requests.session()
         self.BASE = base
         self.login(username, password)
@@ -40,6 +40,7 @@ class edxStudio(object):
                    'Referer': '%s/signin' % self.BASE}
         r2 = self.ses.post(url2, data={'email': username, 'password': pw}, headers=headers)
 
+        # print "login ret = ", r2
         if not r2.status_code==200:
             print "Login failed!"
             print r2.text
@@ -69,9 +70,9 @@ class edxStudio(object):
         print "Uploading %s for %s" % (tfn, course_id)
     
         tfnbn = os.path.basename(tfn)
-        (org, num, sem) = course_id.split('/')
-        mode = 1
-        url = '%s/import/%s/branch/draft/block/%s' % (self.BASE, course_id.replace('/','.'), sem)
+        # (org, num, sem) = course_id.split('/')
+        url = '%s/import/%s' % (self.BASE, course_id)
+        # url = '%s/import/%s/branch/draft/block/%s' % (self.BASE, course_id.replace('/','.'), sem)
     
         files = {'course-data': (tfnbn, open(tfn, 'rb'), 'application/x-gzip')}
     
@@ -82,32 +83,39 @@ class edxStudio(object):
                    'Accept': 'application/json, text/javascript, */*; q=0.01',
                }
     
-        r2 = self.ses.get(url)
+        #r2 = self.ses.get(url)
+        #if not r2.ok or (r2.status_code==404):
+        #    url = '%s/import/slashes:%s' % (self.BASE, course_id.replace('/','+'))
+        #    mode = 2
+        #    r2 = self.ses.get(url)
 
-        if not r2.ok or (r2.status_code==404):
-            url = '%s/import/slashes:%s' % (self.BASE, course_id.replace('/','+'))
-            url = '%s/import/%s' % (self.BASE, course_id)
-            mode = 2
-            r2 = self.ses.get(url)
+        #print r2.status_code
 
-        print r2.status_code
-        r3 = self.ses.post(url, files=files, headers=headers)
-        # print r3.headers
         print url
-        print r3.status_code
-    
+
+        try:
+            r3 = self.ses.post(url, files=files, headers=headers)
+        except Exception as err:
+            print "Error %s" % str(err)
+            print "url=%s, files=%s, headers=%s" % (url, files, headers)
+            sys.stdout.flush()
+            sys.exit(-1)
+
+        # print r3.headers
+        print "r3 = ", r3.status_code
         print "--> %s" % (r3.content)
     
-        url = '%s/import_status/%s/branch/draft/block/%s/%s' % (self.BASE, course_id.replace('/','.'), sem, tfnbn.replace('/','-'))
-        if mode==2:
-            url = '%s/import_status/slashes:%s/%s' % (self.BASE, course_id.replace('/','+'), tfnbn.replace('/','-'))
-            url = '%s/import/%s/%s' % (self.BASE, course_id, tfnbn.replace('/','-'))
+        url = '%s/import_status/%s/%s' % (self.BASE, course_id, tfnbn.replace('/','-'))
+        #url = '%s/import/%s' % (self.BASE, course_id)
         print url
     
         for k in range(nwait):
             r4 = self.ses.get(url)
             if r4.ok:
                 print r4.content
+                if r4.json()["ImportStatus"]==4:
+                    print "Done!"
+                    sys.exit(0)
             else:
                 print r4
             sys.stdout.flush()
@@ -127,7 +135,11 @@ if __name__=='__main__':
         print "Usage: python %s course_id tar_file_name.tgz" % (sys.argv[0])
         exit(0)
 
-    es = edxStudio(username=username, password=password)
+    base = "https://studio.edge.edx.org"
+    if len(sys.argv)>3:
+        base = sys.argv[3]
+
+    es = edxStudio(base=base, username=username, password=password)
     es.do_upload(cid, tfn)
     #es.do_download(cid)
 
