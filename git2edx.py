@@ -143,6 +143,8 @@ def upload_to_edx(rdir, repo, r2c=None):
         os.rename(tmpxml, oldxml)
         LOG("  Moving %s -> %s" % (tmpxml, oldxml))
 
+    LOG("DEBUG: r2c = %s" % json.dumps(r2c, indent=4))
+
     # upload to studio
     LOG('-'*30 + "Uploading %s to edX studio course_id=%s" % (tfn, course_id))
     es = edxStudio(username=config['username'], password=config['password'], base=site_url)
