@@ -38,6 +38,13 @@ if os.path.exists(CFN):
     import json
     new_config = json.loads(open(CFN).read())
     config.update(new_config)
+    print "Known repos:"
+    for repo, val in config['REPO2COURSE_MAP'].items():
+        if type(val)==dict:
+            cid = val['cid']
+        else:
+            cid = val
+        print "    %s (%s)" % (repo, cid)
 
 #-----------------------------------------------------------------------------
 
