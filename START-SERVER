@@ -1,4 +1,6 @@
 #!/bin/bash
 #nohup gunicorn -p gunicorn.pid -b 0.0.0.0:8121 -w 2 git2edx:do_git2edx 2>> LOG.gunicorn >> LOG.gunicorn &
-nohup gunicorn -p gunicorn.pid -b 0.0.0.0:8121 -t 60 -w 2 git2edx:do_git2edx 2>> LOG.gunicorn >> LOG.gunicorn &
+#nohup gunicorn -p gunicorn.pid -b 0.0.0.0:8121 -t 60 -w 2 git2edx:do_git2edx 2>> LOG.gunicorn >> LOG.gunicorn &
+#nohup gunicorn -p gunicorn.pid -b 0.0.0.0:8121 -t 90 -w 2 git2edx:do_git2edx 2>> LOG.gunicorn >> LOG.gunicorn &
+nohup gunicorn -p gunicorn.pid -b 0.0.0.0:8121 -t 190 -w 2 git2edx:do_git2edx 2>> LOG.gunicorn >> LOG.gunicorn &
 
